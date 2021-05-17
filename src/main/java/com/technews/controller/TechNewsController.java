@@ -1,11 +1,22 @@
 package com.technews.controller;
 
+import com.technews.model.Comment;
+import com.technews.model.Post;
+import com.technews.model.User;
+import com.technews.model.Vote;
 import com.technews.repository.CommentRepository;
 import com.technews.repository.PostRepository;
 import com.technews.repository.UserRepository;
 import com.technews.repository.VoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @Controller
 public class TechNewsController {
@@ -21,38 +32,45 @@ public class TechNewsController {
 
     @Autowired
     CommentRepository commentRepository;
+    private User user;
+    private Model model;
+    private HttpServletRequest request;
 
     @PostMapping("/users/login")
     public String login(@ModelAttribute User user, Model model, HttpServletRequest request) throws Exception {
+        String result = null;
+        this.user = user;
+        this.model = model;
+        this.request = request;
 
         if ((user.getPassword().equals(null) || user.getPassword().isEmpty()) || (user.getEmail().equals(null) || user.getPassword().isEmpty())) {
             model.addAttribute("notice", "Email address and password must be populated in order to login!");
-            return "login";
-        }
+            result = "login";
+        } else {
+            User sessionUser = userRepository.findUserByEmail(user.getEmail());
+            try {
+                if (sessionUser.equals(null)) {
 
-        User sessionUser = userRepository.findUserByEmail(user.getEmail());
-
-        try {
-            if (sessionUser.equals(null)) {
-
+                }
+            } catch (NullPointerException e) {
+                model.addAttribute("notice", "Email address is not recognized!");
+                result = "login";
             }
-        } catch (NullPointerException e) {
-            model.addAttribute("notice", "Email address is not recognized!");
-            return "login";
+            if (result == null) {// Validate Password
+                String sessionUserPassword = sessionUser.getPassword();
+                boolean isPasswordValid = BCrypt.checkpw(user.getPassword(), sessionUserPassword);
+                if (isPasswordValid == false) {
+                    model.addAttribute("notice", "Password is not valid!");
+                    result = "login";
+                } else {
+                    sessionUser.setLoggedIn(true);
+                    request.getSession().setAttribute("SESSION_USER", sessionUser);
+                    result = "redirect:/dashboard";
+                }
+            }
         }
 
-        // Validate Password
-        String sessionUserPassword = sessionUser.getPassword();
-        boolean isPasswordValid = BCrypt.checkpw(user.getPassword(), sessionUserPassword);
-        if(isPasswordValid == false) {
-            model.addAttribute("notice", "Password is not valid!");
-            return "login";
-        }
-
-        sessionUser.setLoggedIn(true);
-        request.getSession().setAttribute("SESSION_USER", sessionUser);
-
-        return "redirect:/dashboard";
+        return result;
     }
 
     @PostMapping("/users")
@@ -138,7 +156,6 @@ public class TechNewsController {
             }
         }
     }
-
     @PostMapping("/comments/edit")
     public String createCommentEditPage(@ModelAttribute Comment comment, HttpServletRequest request) {
 
