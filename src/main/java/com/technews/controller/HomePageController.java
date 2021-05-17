@@ -1,5 +1,25 @@
 package com.technews.controller;
 
+import org.springframework.stereotype.Controller;
+
+import com.technews.model.Post;
+import com.technews.model.User;
+import com.technews.model.Comment;
+
+import com.technews.repository.PostRepository;
+import com.technews.repository.UserRepository;
+import com.technews.repository.VoteRepository;
+import com.technews.repository.CommentRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+
+
+
+
 @Controller
 public class HomePageController {
     @Autowired
@@ -9,7 +29,7 @@ public class HomePageController {
     PostRepository postRepository;
 
     @Autowired
-    VoteRepository voteRepository;
+     VoteRepository voteRepository;
 
     @Autowired
     CommentRepository commentRepository;
